@@ -24,6 +24,61 @@ from Initialize import initialize_config
 
 initialize_config()
 
+def initialize_anonymous_statistics_id():
+    """启动时按本地日期更新匿名统计识别码，保留其他临时数据。"""
+    from datetime import date
+    from uuid import uuid4
+    from path_utils import resolve_path
+
+    storage_path = resolve_path("temp_storage.toml")
+    today = date.today().isoformat()
+    try:
+        if os.path.exists(storage_path):
+            with open(storage_path, "r", encoding="utf-8") as f:
+                data = toml.load(f)
+        else:
+            data = {}
+
+        statistics = data.get("AnonymousStatistics", {})
+        if not isinstance(statistics, dict):
+            statistics = {}
+        identifier = statistics.get("id")
+        if (statistics.get("generated_date") == today
+                and isinstance(identifier, str) and identifier.strip()):
+            return identifier
+
+        identifier = uuid4().hex
+        statistics.update(id=identifier, generated_date=today)
+        data["AnonymousStatistics"] = statistics
+        temp_path = storage_path + ".tmp"
+        with open(temp_path, "w", encoding="utf-8") as f:
+            toml.dump(data, f)
+        os.replace(temp_path, storage_path)
+        return identifier
+    except (OSError, ValueError, TypeError) as e:
+        TLog("匿名统计").error(f"初始化匿名统计识别码失败: {e}")
+        return None
+
+
+ANONYMOUS_STATISTICS_ID = initialize_anonymous_statistics_id()
+
+def 发送匿名统计():
+    statistics_log = TLog("匿名统计")
+    try:
+        import urllib.request
+        request = urllib.request.Request(
+            "https://api.sanfuhualv.com/mouseengine/visit",
+            data=b"",
+            headers={
+                "X-Device-ID": ANONYMOUS_STATISTICS_ID,
+                "User-Agent": ""
+            }
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            statistics_log.info(f"匿名统计上报完成: HTTP {response.status}")
+    except Exception as e:
+        statistics_log.error(f"匿名统计上报失败: {e}")
+
 try:
     from pystray import Icon, Menu, MenuItem
     from PIL import Image
@@ -1297,7 +1352,10 @@ if __name__ == "__main__":
     t3 = None
     t4 = start_thread(焦点监听, "FocusListener")
     t5 = start_thread(settings_watcher, "SettingsWatcher")
-    
+    t6 = None
+    if load_main_config().get("config", {}).get("allow_anonymous_statistics", False) and ANONYMOUS_STATISTICS_ID:
+        t6 = start_thread(发送匿名统计, "AnonymousStatistics")
+
     log.info("所有后台线程已启动。")
 
     # 启动系统托盘

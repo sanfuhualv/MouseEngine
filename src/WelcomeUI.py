@@ -136,6 +136,16 @@ def find_wallpaper_engine_path_advanced():
             
     return None
 
+statistics_details_win = None
+
+def _on_statistics_details_closed():
+    global statistics_details_win
+    statistics_details_win = None
+
+class StatisticsDetailsApi:
+    def get_language(self):
+        return get_language()
+
 class Api:
     def __init__(self, on_path_selected_callback):
         self.on_path_selected_callback = on_path_selected_callback
@@ -145,6 +155,24 @@ class Api:
 
     def set_language(self, language):
         return set_language(language)
+
+    def show_statistics_details(self):
+        global statistics_details_win
+        try:
+            if statistics_details_win is not None:
+                return
+            html_file = resolve_path("html/statisticsDetails.html")
+            statistics_details_win = webview.create_window(
+                "匿名使用统计",
+                html_file,
+                js_api=StatisticsDetailsApi(),
+                width=640,
+                height=560,
+                resizable=False
+            )
+            statistics_details_win.events.closed += _on_statistics_details_closed
+        except Exception as e:
+            log.error(f"打开匿名统计详情窗口失败: {e}")
     
     def auto_find_wallpaper_engine(self):
         try:
@@ -192,9 +220,9 @@ class Api:
             log.error(f"验证路径失败: {e}")
             return {"success": False, "message": str(e)}
     
-    def confirm_path(self, path, use_default_cursor=True):
+    def confirm_path(self, path, use_default_cursor=True, allow_statistics=True):
         try:
-            self.on_path_selected_callback(path, use_default_cursor)
+            self.on_path_selected_callback(path, use_default_cursor, allow_statistics)
         except Exception as e:
             log.error(f"确认路径失败: {e}")
     
@@ -305,11 +333,12 @@ def get_wallpaper_engine_path_ui():
     #run_upgrade_check()
     
     # 继续显示欢迎界面
-    result = [None, True]
-    
-    def on_path_selected(path, use_default_cursor=True):
+    result = [None, True, True]
+
+    def on_path_selected(path, use_default_cursor=True, allow_statistics=True):
         result[0] = path
         result[1] = use_default_cursor
+        result[2] = allow_statistics
         if win:
             win.destroy()
     
@@ -326,16 +355,27 @@ def get_wallpaper_engine_path_ui():
         resizable=False,
         easy_drag=True
     )
-    
+
+    def on_main_window_closed():
+        global statistics_details_win
+        if statistics_details_win is not None:
+            try:
+                statistics_details_win.destroy()
+            except Exception:
+                pass
+
+    win.events.closed += on_main_window_closed
+
     webview.start(debug=False, http_server=True)
-    return result[0], result[1]
+    return result[0], result[1], result[2]
 
 if __name__ == "__main__":
-    final_path, use_default_cursor = get_wallpaper_engine_path_ui()
-    
+    final_path, use_default_cursor, allow_statistics = get_wallpaper_engine_path_ui()
+
     if final_path:
         print(f"路径: {final_path}")
         print(f"使用默认光标: {use_default_cursor}")
+        print(f"允许匿名统计: {allow_statistics}")
     else:
         pass
         # sys.exit()

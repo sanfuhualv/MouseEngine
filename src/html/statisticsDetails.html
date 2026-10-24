@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匿名使用统计</title>
+    <link rel="stylesheet" href="css/welcomeUIWeb.css">
+    <style>
+        .details-card {
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            padding: 20px 24px;
+            width: 100%;
+        }
+
+        .details-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4299e1;
+            margin-bottom: 14px;
+        }
+
+        .details-intro {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .details-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .details-list li {
+            font-size: 13px;
+            color: #e2e8f0;
+            line-height: 1.5;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .details-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #4299e1;
+        }
+
+        .source-section {
+            margin-top: 16px;
+        }
+
+        .source-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .source-code {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.5;
+            max-height: 230px;
+            overflow: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="details-card">
+            <div class="details-title" data-i18n="statisticsDetailsTitle">匿名使用统计</div>
+            <p class="details-intro" data-i18n="statisticsDetailsIntro">开启后，我们会发送少量匿名统计数据，用于统计每日活跃客户端数量。</p>
+            <ul class="details-list">
+                <li data-i18n="statisticsDetail1">每日生成随机临时 UUID</li>
+                <li data-i18n="statisticsDetail2">UUID 次日自动更换</li>
+                <li data-i18n="statisticsDetail3">不包含账号、设备序列号等信息</li>
+                <li data-i18n="statisticsDetail4">可随时在设置中关闭</li>
+            </ul>
+            <div class="source-section">
+                <div class="source-title" data-i18n="statisticsSourceCode">相关源码 (main.py)</div>
+                <pre class="source-code"><code>def initialize_anonymous_statistics_id():
+    """启动时按本地日期更新匿名统计识别码，保留其他临时数据。"""
+    from datetime import date
+    from uuid import uuid4
+    from path_utils import resolve_path
+
+    storage_path = resolve_path("temp_storage.toml")
+    today = date.today().isoformat()
+    try:
+        if os.path.exists(storage_path):
+            with open(storage_path, "r", encoding="utf-8") as f:
+                data = toml.load(f)
+        else:
+            data = {}
+
+        statistics = data.get("AnonymousStatistics", {})
+        if not isinstance(statistics, dict):
+            statistics = {}
+        identifier = statistics.get("id")
+        if (statistics.get("generated_date") == today
+                and isinstance(identifier, str) and identifier.strip()):
+            return identifier
+
+        identifier = uuid4().hex
+        statistics.update(id=identifier, generated_date=today)
+        data["AnonymousStatistics"] = statistics
+        temp_path = storage_path + ".tmp"
+        with open(temp_path, "w", encoding="utf-8") as f:
+            toml.dump(data, f)
+        os.replace(temp_path, storage_path)
+        return identifier
+    except (OSError, ValueError, TypeError) as e:
+        TLog("匿名统计").error(f"初始化匿名统计识别码失败: {e}")
+        return None
+
+
+ANONYMOUS_STATISTICS_ID = initialize_anonymous_statistics_id()
+
+def 发送匿名统计():
+    statistics_log = TLog("匿名统计")
+    try:
+        import urllib.request
+        request = urllib.request.Request(
+            "https://api.sanfuhualv.com/mouseengine/visit",
+            data=b"",
+            headers={
+                "X-Device-ID": ANONYMOUS_STATISTICS_ID,
+                "User-Agent": ""
+            }
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            statistics_log.info(f"匿名统计上报完成: HTTP {response.status}")
+    except Exception as e:
+        statistics_log.error(f"匿名统计上报失败: {e}")
+
+
+# main.py 程序启动时，检查开关是否开启
+    if load_main_config().get("config", {}).get("allow_anonymous_statistics", False) and ANONYMOUS_STATISTICS_ID:
+        t6 = start_thread(发送匿名统计, "AnonymousStatistics")</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n.js"></script>
+</body>
+</html>

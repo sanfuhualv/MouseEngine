@@ -11,7 +11,7 @@ def initialize_config():
     config_path = resolve_path("config.toml")
     if os.path.exists(config_path):
         return
-    wallpaper_path, use_default_cursor = get_wallpaper_engine_path_ui()
+    wallpaper_path, use_default_cursor, allow_statistics = get_wallpaper_engine_path_ui()
     if wallpaper_path is None:
         log.error("未选择壁纸引擎路径,初始化结束")
         sys.exit()
@@ -26,6 +26,7 @@ pause_on_fullscreen = false
 strict_window_judgment = false
 specified_mouse_group = ""
 use_new_menu = true
+allow_anonymous_statistics = {str(allow_statistics).lower()}
 
 [log]
 on_DEBUG = false

@@ -245,6 +245,14 @@
             margin-top: -10px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
             gap: 8px;
         }
         
@@ -285,6 +293,18 @@
         .checkbox-label {
             font-size: 12px;
             color: #ffffff;
+        }
+
+        .details-link {
+            font-size: 12px;
+            color: #4299e1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .details-link:hover {
+            color: #63b3ed;
+            text-decoration: underline;
         }
         
         /* 动画效果 */

@@ -408,6 +408,34 @@ class SettingsApi:
             log.error(f"设置新版菜单状态失败: {e}")
             return False
 
+    def get_anonymous_statistics(self):
+        try:
+            config_path = resolve_path("config.toml")
+            if not os.path.exists(config_path):
+                return False
+            config_data = toml.load(config_path)
+            return config_data.get("config", {}).get("allow_anonymous_statistics", False)
+        except Exception as e:
+            log.error(f"获取匿名统计状态失败: {e}")
+            return False
+
+    def set_anonymous_statistics(self, status):
+        try:
+            config_path = resolve_path("config.toml")
+            if os.path.exists(config_path):
+                config_data = toml.load(config_path)
+            else:
+                config_data = {}
+            if "config" not in config_data:
+                config_data["config"] = {}
+            config_data["config"]["allow_anonymous_statistics"] = status
+            with open(config_path, "w", encoding="utf-8") as f:
+                toml.dump(config_data, f)
+            return True
+        except Exception as e:
+            log.error(f"设置匿名统计状态失败: {e}")
+            return False
+
     def 清理缓存(self):
         try:
             # 清理主目录下的cache文件夹

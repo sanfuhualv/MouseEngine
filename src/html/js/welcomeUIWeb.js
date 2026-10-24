@@ -6,6 +6,8 @@ window.onload = function() {
     const pathInput = document.getElementById('pathInput');
     const folderInput = document.getElementById('folderInput');
     const defaultCursorCheck = document.getElementById('defaultCursorCheck');
+    const allowStatisticsCheck = document.getElementById('allowStatisticsCheck');
+    const statisticsDetailsLink = document.getElementById('statisticsDetailsLink');
     const languageToggle = document.getElementById('languageToggle');
     const languageMenu = document.getElementById('languageMenu');
     const languageOptions = document.querySelectorAll('.language-option');
@@ -126,22 +128,29 @@ window.onload = function() {
         folderInput.click();
     });
     
+    statisticsDetailsLink.addEventListener('click', function() {
+        if (checkPyWebView() && window.pywebview.api.show_statistics_details) {
+            window.pywebview.api.show_statistics_details();
+        }
+    });
+
     // 确认并继续按钮点击事件
     continueBtn.addEventListener('click', function() {
         const path = pathInput.value.trim();
-        
+
         if (!path) {
             return;
         }
-        
+
         if (!checkPyWebView()) {
             return;
         }
-        
+
         window.pywebview.api.validate_path(path).then(function(result) {
             if (result.success) {
                 const useDefaultCursor = defaultCursorCheck.checked;
-                window.pywebview.api.confirm_path(path, useDefaultCursor);
+                const allowStatistics = allowStatisticsCheck.checked;
+                window.pywebview.api.confirm_path(path, useDefaultCursor, allowStatistics);
             }
         }).catch(function(error) {
         });

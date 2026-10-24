@@ -236,6 +236,10 @@ async function startLoadingSequence() {
         const useNewMenuStatus = await pywebview.api.get_use_new_menu();
         const useNewMenuEl = document.getElementById('useNewMenu');
         if (useNewMenuEl) useNewMenuEl.checked = useNewMenuStatus;
+
+        const anonymousStatsStatus = await pywebview.api.get_anonymous_statistics();
+        const anonymousStatsEl = document.getElementById('allowAnonymousStats');
+        if (anonymousStatsEl) anonymousStatsEl.checked = anonymousStatsStatus;
         
         console.log("所有配置项加载完成");
     } catch (e) {
@@ -338,6 +342,13 @@ function renderBasicSettings() {
                         <button class="settings-btn" onclick="handleRestoreBackup()" data-i18n="backupImport">恢复备份</button>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-section-title" data-i18n="privacySection">隐私</div>
+            <div class="settings-item">
+                <div class="settings-label" data-i18n="allowAnonymousStatistics">允许发送匿名使用统计</div>
+                <div class="settings-control"><input type="checkbox" id="allowAnonymousStats" onchange="handleAnonymousStatsChange(this.checked)"></div>
             </div>
         </div>
     `;
@@ -816,6 +827,15 @@ async function handleUseNewMenuChange(checked) {
         console.log("使用新版菜单状态已更新为:", checked);
     } catch (e) {
         console.error("更新使用新版菜单状态失败:", e);
+    }
+}
+
+async function handleAnonymousStatsChange(checked) {
+    try {
+        await pywebview.api.set_anonymous_statistics(checked);
+        console.log("匿名统计状态已更新为:", checked);
+    } catch (e) {
+        console.error("更新匿名统计状态失败:", e);
     }
 }
 
